@@ -1,11 +1,11 @@
 "use client";
 
 import ConfirmButton from "@/components/common/ConfirmButton";
-import { LeadStatRow } from "@/types/lead";
+import {Lead} from "@/types/lead";
 
 interface Props {
-  rows: LeadStatRow[];
-  onEdit: (row: LeadStatRow) => void;
+  rows: Lead[];
+  onEdit: (row: Lead) => void;
   onDelete: (id: number) => void;
 }
 
