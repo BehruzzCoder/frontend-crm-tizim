@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import SectionTitle from "@/components/common/SectionTitle";
 import PrimaryButton from "@/components/common/PrimaryButton";
-import TextInput from "@/components/common/TextInput";
-import PlanFormModal from "@/components/forms/PlanFormModal";
-import FactFormModal from "@/components/forms/FactFormModal";
-import PlanStatusModal from "@/components/forms/PlanStatusModal";
-import PlanDetailModal from "@/components/forms/PlanDetailModal";
-import PlansTable from "@/components/tables/PlansTable";
+import ProgressCard from "@/components/common/ProgressCard";
+import MonthlyPlanFormModal from "@/components/forms/MonthlyPlanFormModal";
+import DailyFactFormModal from "@/components/forms/DailyFactFormModal";
+import MonthlyPlansTable from "@/components/tables/MonthlyPlansTable";
 import { api } from "@/lib/api";
 import { getUser } from "@/lib/auth";
-import { Plan, PlanSummary } from "@/types/plan";
+import { DashboardProgress, MonthlyPlan } from "@/types/plan";
 
 interface ManagerUser {
   id: number;
@@ -21,93 +19,51 @@ interface ManagerUser {
   role: string;
 }
 
-const emptySummary: PlanSummary = {
-  totalPlans: 0,
-  factWrittenCount: 0,
-  rewardEligibleCount: 0,
-  penaltyEligibleCount: 0,
-  avgOverallPercent: 0,
-  totalPlanCalls: 0,
-  totalFactCalls: 0,
-  totalPlanTalks: 0,
-  totalFactTalks: 0,
-  totalPlanInterestedClients: 0,
-  totalFactInterestedClients: 0,
-  totalPlanSalesCount: 0,
-  totalFactSalesCount: 0,
-  totalPlanCashSales: 0,
-  totalFactCashSales: 0,
-  totalPlanContractSales: 0,
-  totalFactContractSales: 0,
-  totalPlanDebt: 0,
-  totalFactDebt: 0,
-  totalPlanTotalCash: 0,
-  totalFactTotalCash: 0,
-};
-
 export default function PlansPage() {
   const user = getUser();
   const isAdmin = user?.role === "admin";
 
-  const [rows, setRows] = useState<Plan[]>([]);
-  const [summary, setSummary] = useState<PlanSummary>(emptySummary);
+  const [monthlyPlans, setMonthlyPlans] = useState<MonthlyPlan[]>([]);
+  const [progress, setProgress] = useState<DashboardProgress | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [managers, setManagers] = useState<ManagerUser[]>([]);
-  const [managerSearch, setManagerSearch] = useState("");
-  const [selectedManagerId, setSelectedManagerId] = useState("");
-  const [showManagerDropdown, setShowManagerDropdown] = useState(false);
 
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [factModalOpen, setFactModalOpen] = useState(false);
-  const [statusModalOpen, setStatusModalOpen] = useState(false);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-  const [editPlan, setEditPlan] = useState<Plan | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedMonthlyPlan, setSelectedMonthlyPlan] = useState<MonthlyPlan | null>(null);
 
-  const managerSearchBoxRef = useRef<HTMLDivElement | null>(null);
-
-  const filteredManagers = useMemo(() => {
-    const search = managerSearch.trim().toLowerCase();
-
-    if (search.length < 2) return [];
-
-    return managers.filter(
-      (item) =>
-        item.fullName.toLowerCase().includes(search) ||
-        item.login.toLowerCase().includes(search)
-    );
-  }, [managers, managerSearch]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        managerSearchBoxRef.current &&
-        !managerSearchBoxRef.current.contains(event.target as Node)
-      ) {
-        setShowManagerDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  const [managers, setManagers] = useState<ManagerUser[]>([]);
+  const [selectedManagerId, setSelectedManagerId] = useState("");
 
   const fetchManagers = async () => {
     if (!isAdmin) return;
 
     try {
-      const res = await api.get<ManagerUser[]>("/users");
-      const onlyManagers = res.data.filter((item) => item.role === "manager");
-      setManagers(onlyManagers);
-    } catch (error) {
-      console.error("Managerlarni olishda xatolik:", error);
+      const res = await api.get<ManagerUser[]>("/users/managers");
+      setManagers(res.data);
+    } catch {
       setManagers([]);
     }
+  };
+
+  const fetchManagerPlans = async (managerId: number) => {
+    const res = await api.get<MonthlyPlan[]>(`/monthly-plans/user/${managerId}`);
+    setMonthlyPlans(res.data);
+  };
+
+  const fetchManagerProgress = async (managerId: number) => {
+    const res = await api.get<DashboardProgress>(`/progress/user/${managerId}/dashboard`);
+    setProgress(res.data);
+  };
+
+  const fetchMyData = async () => {
+    const [plansRes, progressRes] = await Promise.all([
+      api.get<MonthlyPlan[]>("/monthly-plans/me"),
+      api.get<DashboardProgress>("/progress/me/dashboard"),
+    ]);
+
+    setMonthlyPlans(plansRes.data);
+    setProgress(progressRes.data);
   };
 
   const fetchData = async () => {
@@ -115,286 +71,121 @@ export default function PlansPage() {
       setLoading(true);
 
       if (isAdmin) {
-        const [rowsRes, summaryRes] = await Promise.all([
-          api.get<Plan[]>("/plans"),
-          api.get<PlanSummary>("/plans/summary"),
-        ]);
-
-        setRows(rowsRes.data);
-        setSummary(summaryRes.data);
+        if (selectedManagerId) {
+          await Promise.all([
+            fetchManagerPlans(Number(selectedManagerId)),
+            fetchManagerProgress(Number(selectedManagerId)),
+          ]);
+        } else {
+          setMonthlyPlans([]);
+          setProgress(null);
+        }
       } else {
-        const [rowsRes, summaryRes] = await Promise.all([
-          api.get<Plan[]>("/plans/me"),
-          api.get<PlanSummary>("/plans/me/summary"),
-        ]);
-        setRows(rowsRes.data);
-        setSummary(summaryRes.data);
+        await fetchMyData();
       }
     } catch (error) {
-      console.error("Planlarni olishda xatolik:", error);
-      setRows([]);
-      setSummary(emptySummary);
+      console.error("Plan/Fakt yuklashda xatolik:", error);
+      setMonthlyPlans([]);
+      setProgress(null);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSelectManager = (manager: ManagerUser) => {
-    setSelectedManagerId(String(manager.id));
-    setManagerSearch(manager.fullName);
-    setShowManagerDropdown(false);
-  };
-
-  const handleFilterByManager = async () => {
-    if (!selectedManagerId) {
-      alert("Avval manager tanlang");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const [rowsRes, summaryRes] = await Promise.all([
-        api.get<Plan[]>(`/plans/user/${selectedManagerId}`),
-        api.get<PlanSummary>(`/plans/summary/user/${selectedManagerId}`),
-      ]);
-
-      setRows(rowsRes.data);
-      setSummary(summaryRes.data);
-      setShowManagerDropdown(false);
-    } catch (error) {
-      console.error("Manager bo‘yicha filterda xatolik:", error);
-      setRows([]);
-      setSummary(emptySummary);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setManagerSearch("");
-    setSelectedManagerId("");
-    setShowManagerDropdown(false);
-    await fetchData();
-  };
-
-  const handleDelete = async (id: number) => {
-    const ok = window.confirm("Rostan ham planni o‘chirmoqchimisiz?");
-    if (!ok) return;
-
-    await api.delete(`/plans/${id}`);
-    fetchData();
   };
 
   useEffect(() => {
-    fetchData();
     fetchManagers();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedManagerId]);
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <SectionTitle
           title="Plan / Fakt"
-          subtitle="Planlar, faktlar va taqqoslash natijalari"
+          subtitle="Oylik plan, kunlik fakt va progress"
         />
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Jami planlar</p>
-            <h3 className="mt-2 text-2xl font-bold">{summary.totalPlans}</h3>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Fakt yozilgan</p>
-            <h3 className="mt-2 text-2xl font-bold">{summary.factWrittenCount}</h3>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Mukofotga yaqinlar</p>
-            <h3 className="mt-2 text-2xl font-bold text-green-600">
-              {summary.rewardEligibleCount}
-            </h3>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">O‘rtacha foiz</p>
-            <h3 className="mt-2 text-2xl font-bold text-blue-600">
-              {summary.avgOverallPercent}%
-            </h3>
-          </div>
-        </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex-1">
-              {isAdmin ? (
-                <div className="space-y-2" ref={managerSearchBoxRef}>
-                  <label className="text-sm font-medium text-slate-700">
-                    Manager bo‘yicha qidirish
-                  </label>
-
-                  <TextInput
-                    placeholder="Qidirish..."
-                    value={managerSearch}
-                    onFocus={() => {
-                      if (managerSearch.trim().length >= 2) {
-                        setShowManagerDropdown(true);
-                      }
-                    }}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setManagerSearch(value);
-                      setSelectedManagerId("");
-                      if (value.trim().length >= 2) {
-                        setShowManagerDropdown(true);
-                      } else {
-                        setShowManagerDropdown(false);
-                      }
-                    }}
-                  />
-
-                  {managerSearch.trim().length > 0 &&
-                  managerSearch.trim().length < 2 ? (
-                    <div className="text-sm text-slate-400">
-                      Natija chiqishi uchun kamida 2 ta harf yozing
-                    </div>
-                  ) : null}
-
-                  {showManagerDropdown &&
-                  managerSearch.trim().length >= 2 &&
-                  filteredManagers.length > 0 ? (
-                    <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow">
-                      {filteredManagers.map((manager) => (
-                        <button
-                          key={manager.id}
-                          type="button"
-                          onClick={() => handleSelectManager(manager)}
-                          className={`flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${
-                            Number(selectedManagerId) === manager.id
-                              ? "bg-blue-50"
-                              : ""
-                          }`}
-                        >
-                          <span className="font-medium text-slate-900">
-                            {manager.fullName}
-                          </span>
-                          <span className="text-sm text-slate-500">
-                            {manager.login}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {showManagerDropdown &&
-                  managerSearch.trim().length >= 2 &&
-                  filteredManagers.length === 0 ? (
-                    <div className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-500">
-                      Manager topilmadi
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-slate-500">Foydalanuvchi</p>
-                  <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                    {user?.fullName}
-                  </h3>
-                </div>
-              )}
-            </div>
+            {isAdmin ? (
+              <div className="w-full max-w-md space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Manager tanlang
+                </label>
+                <select
+                  value={selectedManagerId}
+                  onChange={(e) => setSelectedManagerId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none"
+  >
+                  <option value="">Manager tanlang</option>
+                  {managers.map((manager) => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-slate-500">Foydalanuvchi</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                  {user?.fullName}
+                </h3>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-3">
-              {isAdmin ? (
-                <>
-                  <PrimaryButton type="button" onClick={handleFilterByManager}>
-                    Manager bo‘yicha
-                  </PrimaryButton>
-
-                  <button
-                    onClick={handleReset}
-                    className="rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700"
-                  >
-                    Reset
-                  </button>
-                </>
-              ) : null}
-
               <PrimaryButton
                 type="button"
-                onClick={() => {
-                  setEditPlan(null);
-                  setPlanModalOpen(true);
-                }}
+                onClick={() => setPlanModalOpen(true)}
               >
-                Plan yozish
+                Oylik plan yozish
               </PrimaryButton>
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-slate-500">Yuklanmoqda...</div>
-        ) : (
-          <PlansTable
-            rows={rows}
-            onEdit={(plan) => {
-              setEditPlan(plan);
-              setPlanModalOpen(true);
-            }}
-            onDelete={handleDelete}
-            onFact={(plan) => {
-              setSelectedPlan(plan);
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm">
+            Yuklanmoqda...
+          </div>
+        ) : null}
+
+        {!loading && progress ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <ProgressCard title="Kunlik progress" data={progress.daily} />
+            <ProgressCard title="Haftalik progress" data={progress.weekly} />
+            <ProgressCard title="Oylik progress" data={progress.monthly} />
+          </div>
+        ) : null}
+
+        {!loading ? (
+          <MonthlyPlansTable
+            rows={monthlyPlans}
+            onWriteFact={(plan) => {
+              setSelectedMonthlyPlan(plan);
               setFactModalOpen(true);
             }}
-            onStatus={(plan) => {
-              setSelectedPlan(plan);
-              setStatusModalOpen(true);
-            }}
-            onView={(plan) => {
-              setSelectedPlan(plan);
-              setDetailModalOpen(true);
-            }}
           />
-        )}
-        <PlanFormModal
+        ) : null}
+
+        <MonthlyPlanFormModal
           open={planModalOpen}
-          onClose={() => {
-            setPlanModalOpen(false);
-            setEditPlan(null);
-          }}
+          onClose={() => setPlanModalOpen(false)}
           onSuccess={fetchData}
-          editData={editPlan}
         />
 
-        <FactFormModal
+        <DailyFactFormModal
           open={factModalOpen}
           onClose={() => {
             setFactModalOpen(false);
-            setSelectedPlan(null);
+            setSelectedMonthlyPlan(null);
           }}
           onSuccess={fetchData}
-          plan={selectedPlan}
-        />
-
-        <PlanStatusModal
-          open={statusModalOpen}
-          onClose={() => {
-            setStatusModalOpen(false);
-            setSelectedPlan(null);
-          }}
-          onSuccess={fetchData}
-          plan={selectedPlan}
-        />
-
-        <PlanDetailModal
-          open={detailModalOpen}
-          onClose={() => {
-            setDetailModalOpen(false);
-            setSelectedPlan(null);
-          }}
-          plan={selectedPlan}
+          monthlyPlan={selectedMonthlyPlan}
         />
       </div>
     </MainLayout>

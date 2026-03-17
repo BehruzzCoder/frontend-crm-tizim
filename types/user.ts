@@ -12,3 +12,11 @@ export interface LoginResponse {
   token: string;
   user: AuthUser;
 }
+export interface UserItem {
+  id: number;
+  fullName: string;
+  login: string;
+  role: "admin" | "manager";
+  createdAt?: string;
+  updatedAt?: string;
+}

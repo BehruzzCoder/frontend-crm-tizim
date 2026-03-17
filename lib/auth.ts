@@ -1,54 +1,51 @@
-import { AuthUser } from "@/types/user";
-
-const TOKEN_KEY = "crm_token";
-const USER_KEY = "crm_user";
-
-export function setToken(token: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
+export interface AuthUser {
+  id: number;
+  fullName: string;
+  login: string;
+  role: "admin" | "manager";
 }
 
-export function getToken() {
+export const getToken = () => {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-}
+  return localStorage.getItem("token");
+};
 
-export function removeToken() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-}
+export const setToken = (token: string) => {
+  localStorage.setItem("token", token);
+};
 
-export function setUser(user: AuthUser) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-export function getUser(): AuthUser | null {
+export const getUser = (): AuthUser | null => {
   if (typeof window === "undefined") return null;
 
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = localStorage.getItem("user");
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as AuthUser;
+    return JSON.parse(raw);
   } catch {
     return null;
   }
-}
+};
 
-export function removeUser() {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(USER_KEY);
-}
+export const setUser = (user: AuthUser) => {
+  localStorage.setItem("user", JSON.stringify(user));
+};
 
-export function clearAuth() {
-  removeToken();
-  removeUser();
-}
-
-export function isLoggedIn() {
+export const isAuthenticated = () => {
   return !!getToken();
-}
-export function isAuthenticated() {
-  return !!getToken();
+};
+
+export const logout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+};
+
+export const hasRole = (roles: Array<"admin" | "manager">) => {
+  const user = getUser();
+  if (!user) return false;
+  return roles.includes(user.role);
+};
+export const clearAuth = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 }

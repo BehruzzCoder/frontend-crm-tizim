@@ -1,50 +1,80 @@
-export interface LeadAnalytics {
-  jamiLid: number;
-  yangiLid: number;
-  ishgaOlindi: number;
-  aloqaOrnatildi: number;
-  konsultatsiyaBerildi: number;
-  qiziqishBildirdi: number;
-  hisobRaqamYuborildi: number;
-  preDaplata: number;
-  toliqTolov: number;
-  kotargan: number;
-  kotarmagan: number;
-}
-
-export interface DashboardAnalytics extends LeadAnalytics {
-  paymentsCount: number;
-  totalPaymentAmount: number;
-  totalDebt: number;
-}
-
-export interface PaymentSummary {
-  paymentsCount: number;
-  totalAmount: number;
-  totalDebt: number;
-}
-
-export interface PaymentByManager {
-  manager: string;
-  count: number;
-  amount: number;
-  debt: number;
-}
-
-export interface RangeAnalytics {
-  rows: {
-    id: number;
-    date: string;
+export interface DashboardAnalytics {
+  users: {
+    total: number;
+    admins: number;
+    managers: number;
+  };
+  payments: {
+    totalCount: number;
+    totalCash: number;
+    totalDebt: number;
+    todayCount: number;
+    todayCash: number;
+  };
+  attendance: {
+    todayCount: number;
+    checkedInCount: number;
+    checkedOutCount: number;
+    lateCount: number;
+  };
+  plans: {
+    monthlyPlansCount: number;
+    monthlyPlanCash: number;
+    monthlyFactCash: number;
+  };
+  penalties: {
+    totalCount: number;
+    totalAmount: number;
+  };
+  leads: {
+    total: number;
+    today: number;
     yangiLid: number;
     ishgaOlindi: number;
-    aloqaOrnatildi: number;
-    konsultatsiyaBerildi: number;
-    qiziqishBildirdi: number;
-    hisobRaqamYuborildi: number;
-    preDaplata: number;
-    toliqTolov: number;
+    aloqa: number;
+    konsultatsiya: number;
+    qiziqish: number;
+    hisob: number;
+    pre: number;
+    toliq: number;
     kotargan: number;
     kotarmagan: number;
-  }[];
-  summary: LeadAnalytics;
+  };
+}
+
+export interface ManagerAnalytics {
+  managerId: number;
+  month: number;
+  year: number;
+  payments: {
+    count: number;
+    totalCash: number;
+    totalDebt: number;
+  };
+  facts: {
+    count: number;
+    factCalls: number;
+    factTalks: number;
+    factSalesCount: number;
+    factTotalCash: number;
+  };
+  attendance: {
+    checkedInCount: number;
+    checkedOutCount: number;
+    lateCount: number;
+  };
+  penalties: {
+    count: number;
+    totalAmount: number;
+  };
+  monthlyPlan: {
+    id: number;
+    planCalls: number;
+    planTalks: number;
+    planSalesCount: number;
+    planTotalCash: number;
+    rewardName: string | null;
+    penaltyTask: string | null;
+  } | null;
+  today: string;
 }

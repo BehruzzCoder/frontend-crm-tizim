@@ -1,44 +1,51 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import TextInput from "@/components/common/TextInput";
-import PrimaryButton from "@/components/common/PrimaryButton";
 import { api } from "@/lib/api";
-import { getToken, setToken, setUser } from "@/lib/auth";
-import { LoginResponse } from "@/types/user";
+import { setToken, setUser } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [login, setLogin] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    login: "",
+    password: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [errorText, setErrorText] = useState("");
 
-  useEffect(() => {
-    const token = getToken();
+  const setValue = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-    if (token) {
-      router.replace("/dashboard");
-    }
-  }, [router]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setErrorText("");
-    setLoading(true);
-
+  const handleSubmit = async () => {
     try {
-      const res = await api.post<LoginResponse>("/auth/login", {
-        login,
-        password,
+      setLoading(true);
+      setErrorText("");
+
+      const res = await api.post("/auth/login", {
+        login: form.login,
+        password: form.password,
       });
 
-      setToken(res.data.token);
-      setUser(res.data.user);
+      const token =
+        res.data?.accessToken ||
+        res.data?.token ||
+        res.data?.access_token;
 
-      router.push("/dashboard");
+      const user = res.data?.user;
+
+      if (!token || !user) {
+        setErrorText("Login javobi noto‘g‘ri keldi");
+        return;
+      }
+
+      setToken(token);
+      setUser(user);
+
+      router.replace("/dashboard");
     } catch (error: any) {
       setErrorText(
         error?.response?.data?.message || "Login yoki parol noto‘g‘ri"
@@ -50,29 +57,40 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-lg border border-slate-200">
-        <div className="mb-6 text-center">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-slate-900">CRM Login</h1>
-          <p className="mt-2 text-slate-500">
-            Tizimga kirish uchun login va parol kiriting
+          <p className="mt-2 text-sm text-slate-500">
+            Tizimga kirish uchun ma’lumotlaringizni kiriting
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <TextInput
-            label="Login"
-            placeholder="admin"
-            value={login}
-            onChange={(e) => setLogin(e.target.value)}
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Login
+            </label>
+            <input
+              type="text"
+              value={form.login}
+              onChange={(e) => setValue("login", e.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-500"
+              placeholder="Login"
+            />
+          </div>
 
-          <TextInput
-            label="Parol"
-            type="password"
-            placeholder="••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Parol
+            </label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setValue("password", e.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-500"
+              placeholder="Parol"
+            />
+          </div>
 
           {errorText ? (
             <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -80,10 +98,14 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          <PrimaryButton type="submit" disabled={loading} className="w-full">
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+          >
             {loading ? "Kirilmoqda..." : "Kirish"}
-          </PrimaryButton>
-        </form>
+          </button>
+        </div>
       </div>
     </div>
   );

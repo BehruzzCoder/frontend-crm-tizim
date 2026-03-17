@@ -1,79 +1,96 @@
-import { AuthUser } from "./user";
-
-export type PlanType = "daily" | "weekly" | "monthly";
-export type RewardStatus = "pending" | "given" | "not_given";
-export type PenaltyTaskStatus = "pending" | "done" | "not_done";
-
-export interface Plan {
+export interface MonthlyPlanUser {
   id: number;
-  user: AuthUser;
-  type: PlanType;
-  startDate: string;
-  endDate: string | null;
+  fullName: string;
+  login: string;
+  role: string;
+}
 
+export interface MonthlyPlan {
+  id: number;
+  month: number;
+  year: number;
   planCalls: number;
   planTalks: number;
-  planInterestedClients: number;
   planSalesCount: number;
   planCashSales: number;
   planContractSales: number;
   planDebt: number;
   planTotalCash: number;
+  rewardName: string | null;
+  penaltyTask: string | null;
+  rewardStatus: string;
+  penaltyTaskStatus: string;
+  adminComment: string | null;
+  user: MonthlyPlanUser;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
+export interface DailyFact {
+  id: number;
+  date: string;
   factCalls: number;
   factTalks: number;
-  factInterestedClients: number;
   factSalesCount: number;
   factCashSales: number;
   factContractSales: number;
   factDebt: number;
   factTotalCash: number;
+  monthlyPlan: MonthlyPlan;
+  user: MonthlyPlanUser;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-  factWritten: boolean;
-
+export interface ProgressPercent {
   callsPercent: number;
   talksPercent: number;
-  interestedPercent: number;
   salesCountPercent: number;
   cashSalesPercent: number;
   contractSalesPercent: number;
   debtPercent: number;
   totalCashPercent: number;
-  overallPercent: number;
-
-  rewardName: string | null;
-  rewardStatus: RewardStatus;
-  rewardEligible: boolean;
-
-  penaltyTask: string | null;
-  penaltyTaskStatus: PenaltyTaskStatus;
-  penaltyEligible: boolean;
-
-  adminComment: string | null;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
-export interface PlanSummary {
-  totalPlans: number;
-  factWrittenCount: number;
-  rewardEligibleCount: number;
-  penaltyEligibleCount: number;
-  avgOverallPercent: number;
-  totalPlanCalls: number;
-  totalFactCalls: number;
-  totalPlanTalks: number;
-  totalFactTalks: number;
-  totalPlanInterestedClients: number;
-  totalFactInterestedClients: number;
-  totalPlanSalesCount: number;
-  totalFactSalesCount: number;
-  totalPlanCashSales: number;
-  totalFactCashSales: number;
-  totalPlanContractSales: number;
-  totalFactContractSales: number;
-  totalPlanDebt: number;
-  totalFactDebt: number;
-  totalPlanTotalCash: number;
-  totalFactTotalCash: number;
+export interface ProgressBlock {
+  type: "daily" | "weekly" | "monthly";
+  monthlyPlanId: number;
+  plan: {
+    planCalls: number;
+    planTalks: number;
+    planSalesCount: number;
+    planCashSales: number;
+    planContractSales: number;
+    planDebt: number;
+    planTotalCash: number;
+  };
+  fact: {
+    factCalls: number;
+    factTalks: number;
+    factSalesCount: number;
+    factCashSales: number;
+    factContractSales: number;
+    factDebt: number;
+    factTotalCash: number;
+  };
+  percent: ProgressPercent;
+  overallPercent: number;
+  date?: string;
+  week?: number;
+  startDate?: string;
+  endDate?: string;
+  month?: number;
+  year?: number;
+  rewardName?: string | null;
+  rewardStatus?: string;
+  penaltyTask?: string | null;
+  penaltyTaskStatus?: string;
+  adminComment?: string | null;
+  facts?: DailyFact[];
+}
+
+export interface DashboardProgress {
+  daily: ProgressBlock;
+  weekly: ProgressBlock;
+  monthly: ProgressBlock;
 }

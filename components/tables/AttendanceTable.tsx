@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Attendance } from "@/types/attendance";
 import ImagePreviewModal from "@/components/common/ImagePreviewModal";
+import { makeImageUrl } from "@/lib/image";
 
 interface AttendanceTableProps {
   rows: Attendance[];
@@ -12,9 +13,7 @@ export default function AttendanceTable({ rows }: AttendanceTableProps) {
   const fileBase = process.env.NEXT_PUBLIC_API_URL;
   const [previewUrl, setPreviewUrl] = useState("");
 
-  const makeImageUrl = (fileName: string) => {
-    return `${fileBase}/uploads/${encodeURIComponent(fileName)}`;
-  };
+  
 
   return (
     <>
@@ -59,7 +58,7 @@ export default function AttendanceTable({ rows }: AttendanceTableProps) {
                 <td className="px-4 py-3 whitespace-nowrap">
                   {item.checkInImage ? (
                     <button
-                      onClick={() => setPreviewUrl(makeImageUrl(item.checkInImage!))}
+                      onClick={() => setPreviewUrl(makeImageUrl(item.checkInImage || ""))}
                       className="text-blue-600 underline"
                     >
                       Ko‘rish
@@ -71,7 +70,9 @@ export default function AttendanceTable({ rows }: AttendanceTableProps) {
                 <td className="px-4 py-3 whitespace-nowrap">
                   {item.checkOutImage ? (
                     <button
-                      onClick={() => setPreviewUrl(makeImageUrl(item.checkOutImage!))}
+                      onClick={() =>
+                        setPreviewUrl(makeImageUrl(item.checkOutImage || ""))
+                      }
                       className="text-blue-600 underline"
                     >
                       Ko‘rish

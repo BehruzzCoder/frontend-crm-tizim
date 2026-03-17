@@ -5,8 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import SectionTitle from "@/components/common/SectionTitle";
 import PrimaryButton from "@/components/common/PrimaryButton";
 import TextInput from "@/components/common/TextInput";
-import AttendanceCheckInModal from "@/components/forms/AttendanceCheckInModal";
-import AttendanceCheckOutModal from "@/components/forms/AttendanceCheckOutModal";
+import CameraCaptureModal from "@/components/common/CameraCaptureModal";
 import AttendanceTable from "@/components/tables/AttendanceTable";
 import { api } from "@/lib/api";
 import { getUser } from "@/lib/auth";
@@ -21,6 +20,7 @@ export default function AttendancePage() {
 
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [todayFactExists, setTodayFactExists] = useState(false);
 
   const isAdmin = user?.role === "admin";
 
@@ -35,21 +35,35 @@ export default function AttendancePage() {
         const res = await api.get<Attendance[]>("/attendance/me");
         setRows(res.data);
       }
+    } catch (error) {
+      console.error("Attendance yuklashda xatolik:", error);
+      setRows([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchFactStatus = async () => {
+    if (isAdmin) return;
+
+    try {
+      const res = await api.get("/daily-facts/me/today");
+      setTodayFactExists(!!res.data);
+    } catch {
+      setTodayFactExists(false);
+    }
+  };
+
   const handleDateFilter = async () => {
-    if (!date) return;
+    if (!date || !isAdmin) return;
 
     try {
       setLoading(true);
-
-      if (isAdmin) {
-        const res = await api.get<Attendance[]>(`/attendance/by-date?date=${date}`);
-        setRows(res.data);
-      }
+      const res = await api.get<Attendance[]>(`/attendance/by-date?date=${date}`);
+      setRows(res.data);
+    } catch (error) {
+      console.error("Sana bo‘yicha attendance olishda xatolik:", error);
+      setRows([]);
     } finally {
       setLoading(false);
     }
@@ -57,6 +71,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetchRows();
+    fetchFactStatus();
   }, []);
 
   const totalLate = rows.filter((item) => item.late).length;
@@ -87,7 +102,23 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        {!isAdmin ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm text-slate-500">Bugungi fact holati</p>
+            <div className="mt-2">
+              {todayFactExists ? (
+                <span className="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                  Fact yozilgan
+                </span>
+              ) : (
+                <span className="inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+                  Fact yozilmagan
+                </span>
+              )}
+            </div>
+          </div>
+        ) : null}
+<div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex-1">
               {isAdmin ? (
@@ -113,7 +144,8 @@ export default function AttendancePage() {
                   <PrimaryButton type="button" onClick={handleDateFilter}>
                     Sana bo‘yicha
                   </PrimaryButton>
-                <button
+
+                  <button
                     onClick={fetchRows}
                     className="rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700"
                   >
@@ -126,7 +158,17 @@ export default function AttendancePage() {
                     Keldim
                   </PrimaryButton>
 
-                  <PrimaryButton type="button" onClick={() => setCheckOutOpen(true)}>
+                  <PrimaryButton
+                    type="button"
+                    onClick={() => {
+                      if (!todayFactExists) {
+                        alert("Avval bugungi factni yozish kerak");
+                        return;
+                      }
+
+                      setCheckOutOpen(true);
+                    }}
+                  >
                     Ketdim
                   </PrimaryButton>
                 </>
@@ -136,21 +178,47 @@ export default function AttendancePage() {
         </div>
 
         {loading ? (
-          <div className="text-slate-500">Yuklanmoqda...</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm">
+            Yuklanmoqda...
+          </div>
         ) : (
           <AttendanceTable rows={rows} />
         )}
 
-        <AttendanceCheckInModal
+        <CameraCaptureModal
           open={checkInOpen}
           onClose={() => setCheckInOpen(false)}
-          onSuccess={fetchRows}
+          title="Keldim"
+          onCapture={async (file) => {
+            const formData = new FormData();
+            formData.append("userId", String(user?.id));
+            formData.append("image", file);
+
+            await api.post("/attendance/check-in", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            await fetchRows();
+            await fetchFactStatus();
+          }}
         />
 
-        <AttendanceCheckOutModal
+        <CameraCaptureModal
           open={checkOutOpen}
           onClose={() => setCheckOutOpen(false)}
-          onSuccess={fetchRows}
+          title="Ketdim"
+          onCapture={async (file) => {
+            const formData = new FormData();
+            formData.append("userId", String(user?.id));
+            formData.append("image", file);
+
+            await api.post("/attendance/check-out", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            await fetchRows();
+            await fetchFactStatus();
+          }}
         />
       </div>
     </MainLayout>

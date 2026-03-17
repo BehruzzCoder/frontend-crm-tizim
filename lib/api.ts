@@ -1,8 +1,8 @@
 import axios from "axios";
-import { clearAuth, getToken } from "./auth";
+import { getToken, logout } from "./auth";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
 });
 
 api.interceptors.request.use((config) => {
@@ -19,7 +19,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== "undefined" && error?.response?.status === 401) {
-      clearAuth();
+      logout();
       window.location.href = "/login";
     }
 

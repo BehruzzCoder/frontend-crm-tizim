@@ -1,11 +1,12 @@
-import { AuthUser } from "./user";
+export interface AttendanceUser {
+  id: number;
+  fullName: string;
+  login: string;
+  role: string;
+}
 
 export interface Attendance {
   id: number;
-  user: AuthUser & {
-    phone?: string;
-    image?: string | null;
-  };
   date: string;
   checkInTime: string | null;
   checkOutTime: string | null;
@@ -13,7 +14,7 @@ export interface Attendance {
   checkOutImage: string | null;
   late: boolean;
   lateMinutes: number;
-  penaltyCreated: boolean;
+  user: AttendanceUser;
   createdAt?: string;
   updatedAt?: string;
 }
