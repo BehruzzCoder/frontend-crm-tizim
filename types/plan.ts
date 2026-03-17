@@ -122,4 +122,5 @@ export interface Plan{
   updatedAt?: string;
   factInterestedClients?: number;
   factWritten?: boolean;
+  type?: "daily" | "weekly" | "monthly";
 }
