@@ -85,7 +85,7 @@ const fetchMonthlyPlan = async (managerId: string) => {
 
       await Promise.all([
         fetchMonthlyPlan(selectedManagerId),
-        setProgress(selectedManagerId),
+        setProgress(selectedManagerId ? (await api.get(`/dashboard/progress?userId=${selectedManagerId}`)).data : null),
       ]);
     } finally {
       setLoading(false);
