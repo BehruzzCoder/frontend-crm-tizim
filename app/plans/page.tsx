@@ -45,44 +45,33 @@ export default function PlansPage() {
     }
   };
 
-  const fetchMonthlyPlan = async (managerId: string) => {
-    if (!managerId) {
-      setMonthlyPlan(null);
-      return;
-    }
+const fetchMonthlyPlan = async (managerId: string) => {
+  try {
+    if (isAdmin) {
+      if (!managerId) {
+        setMonthlyPlan(null);
+        return;
+      }
 
-    try {
       const res = await api.get<MonthlyPlan[]>(
         `/monthly-plans?userId=${managerId}&month=${currentMonth}&year=${currentYear}`
       );
 
       const rows = Array.isArray(res.data) ? res.data : [];
       setMonthlyPlan(rows.length ? rows[0] : null);
-    } catch (error) {
-      console.error("Oylik planni olishda xatolik:", error);
-      setMonthlyPlan(null);
-    }
-  };
+    } else {
+      const res = await api.get<MonthlyPlan[]>(
+        `/monthly-plans/me?month=${currentMonth}&year=${currentYear}`
+      );
 
-  const fetchProgress = async (managerId: string) => {
-    if (!managerId) {
-      setProgress(null);
-      return;
+      const rows = Array.isArray(res.data) ? res.data : [];
+      setMonthlyPlan(rows.length ? rows[0] : null);
     }
-
-    try {
-      if (isAdmin) {
-        const res = await api.get<DashboardProgress>(`/progress/user/${managerId}`);
-        setProgress(res.data);
-      } else {
-        const res = await api.get<DashboardProgress>("/progress/me");
-        setProgress(res.data);
-      }
-    } catch (error) {
-      console.error("Progress olishda xatolik:", error);
-      setProgress(null);
-    }
-  };
+  } catch (error) {
+    console.error("Oylik planni olishda xatolik:", error);
+    setMonthlyPlan(null);
+  }
+};
 
   const fetchData = async () => {
     try {
@@ -96,7 +85,7 @@ export default function PlansPage() {
 
       await Promise.all([
         fetchMonthlyPlan(selectedManagerId),
-        fetchProgress(selectedManagerId),
+        setProgress(selectedManagerId),
       ]);
     } finally {
       setLoading(false);
