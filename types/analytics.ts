@@ -78,3 +78,9 @@ export interface ManagerAnalytics {
   } | null;
   today: string;
 }
+export interface PaymentByManager {
+  manager: string;
+  count: number;
+  amount: number;
+  debt: number;
+}

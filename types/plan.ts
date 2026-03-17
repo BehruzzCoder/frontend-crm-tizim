@@ -120,4 +120,5 @@ export interface Plan{
   user?: MonthlyPlanUser;
   createdAt?: string;
   updatedAt?: string;
+  factInterestedClients?: number;
 }
