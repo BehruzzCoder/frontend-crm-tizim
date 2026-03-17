@@ -121,4 +121,5 @@ export interface Plan{
   createdAt?: string;
   updatedAt?: string;
   factInterestedClients?: number;
+  factWritten?: boolean;
 }
