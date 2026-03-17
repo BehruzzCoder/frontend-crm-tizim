@@ -94,3 +94,16 @@ export interface DashboardProgress {
   weekly: ProgressBlock;
   monthly: ProgressBlock;
 }
+export interface Plan{
+  id: number;
+  month: number;
+  year: number;
+  planCalls: number;
+  planTalks: number;
+  planSalesCount: number;
+  planCashSales: number;
+  planContractSales: number;
+  planDebt: number;
+  planTotalCash: number;
+  rewardName: string | null;
+}
