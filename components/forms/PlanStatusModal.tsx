@@ -26,8 +26,8 @@ export default function PlanStatusModal({
 
   useEffect(() => {
     if (plan) {
-      setRewardStatus(plan.rewardStatus);
-      setPenaltyTaskStatus(plan.penaltyTaskStatus);
+      setRewardStatus(plan.rewardStatus || "pending");
+      setPenaltyTaskStatus(plan.penaltyTaskStatus || "pending" );
       setAdminComment(plan.adminComment || "");
     }
   }, [plan, open]);
