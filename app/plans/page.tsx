@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -63,7 +63,7 @@ export default function PlansPage() {
         }
 
         const res = await api.get<MonthlyPlan[]>(
-          `/monthly-plans?userId=${managerId}&month=${currentMonth}&year=${currentYear}`  
+          `/monthly-plans?userId=${managerId}&month=${currentMonth}&year=${currentYear}`
         );
 
         const rows = Array.isArray(res.data) ? res.data : [];
@@ -83,27 +83,46 @@ export default function PlansPage() {
   };
 
   const fetchProgress = async (managerId: string) => {
-    try {
-      if (isAdmin) {
-        if (!managerId) {
-          setProgress(null);
-          return;
-        }
+  try {
+    const today = new Date().toISOString().slice(0, 10);
 
-        const res = await api.get<DashboardProgress>(
-          `/progress/user/${managerId}`
-        );
-        setProgress(res.data);
-      } else {
-        const res = await api.get<DashboardProgress>("/progress/me");
-        setProgress(res.data);
+    if (isAdmin) {
+      if (!managerId) {
+        setProgress(null);
+        return;
       }
-    } catch (error) {
-      console.error("Progress olishda xatolik:", error);
-      setProgress(null);
-    }
-  };
 
+      const [dailyRes, weeklyRes, monthlyRes] = await Promise.all([
+        api.get(`/progress/user/${managerId}/daily?date=${today}`),
+        api.get(`/progress/user/${managerId}/weekly?date=${today}`),
+        api.get(
+          `/progress/user/${managerId}/monthly?month=${currentMonth}&year=${currentYear}`
+        ),
+      ]);
+
+      setProgress({
+        daily: dailyRes.data,
+        weekly: weeklyRes.data,
+        monthly: monthlyRes.data,
+      });
+    } else {
+      const [dailyRes, weeklyRes, monthlyRes] = await Promise.all([
+        api.get(`/progress/me/daily?date=${today}`),
+        api.get(`/progress/me/weekly?date=${today}`),
+        api.get(`/progress/me/monthly?month=${currentMonth}&year=${currentYear}`),
+      ]);
+
+      setProgress({
+        daily: dailyRes.data,
+        weekly: weeklyRes.data,
+        monthly: monthlyRes.data,
+      });
+    }
+  } catch (error) {
+    console.error("Progress olishda xatolik:", error);
+    setProgress(null);
+  }
+};
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -134,14 +153,14 @@ export default function PlansPage() {
   }, [isAdmin, user?.id]);
 
   useEffect(() => {
-    if (!selectedManagerId && isAdmin) return;
+    if (isAdmin && !selectedManagerId) return;
     fetchData();
   }, [selectedManagerId]);
 
   const activeManagerName = isAdmin
     ? managers.find((m) => String(m.id) === selectedManagerId)?.fullName || "-"
     : user?.fullName || "-";
-return (
+ return (
     <MainLayout>
       <div className="space-y-6">
         <SectionTitle
@@ -192,7 +211,7 @@ return (
           </div>
         ) : null}
 
-        {!loading && progress ? (
+        {progress ? (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
@@ -210,19 +229,16 @@ return (
                   <p>Plan: {progress.daily.plan.planCalls}</p>
                   <p>Fakt: {progress.daily.fact.factCalls}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Suhbat</p>
                   <p>Plan: {progress.daily.plan.planTalks}</p>
                   <p>Fakt: {progress.daily.fact.factTalks}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Sotuv</p>
                   <p>Plan: {progress.daily.plan.planSalesCount}</p>
                   <p>Fakt: {progress.daily.fact.factSalesCount}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Kassa</p>
                   <p>Plan: {moneyFormat(progress.daily.plan.planTotalCash)}</p>
@@ -240,25 +256,22 @@ return (
                   {progress.weekly.overallPercent}%
                 </span>
               </div>
-<div className="grid grid-cols-2 gap-3 text-sm">
+ <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Qo‘ng‘iroq</p>
                   <p>Plan: {progress.weekly.plan.planCalls}</p>
                   <p>Fakt: {progress.weekly.fact.factCalls}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Suhbat</p>
                   <p>Plan: {progress.weekly.plan.planTalks}</p>
                   <p>Fakt: {progress.weekly.fact.factTalks}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Sotuv</p>
                   <p>Plan: {progress.weekly.plan.planSalesCount}</p>
                   <p>Fakt: {progress.weekly.fact.factSalesCount}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Kassa</p>
                   <p>Plan: {moneyFormat(progress.weekly.plan.planTotalCash)}</p>
@@ -283,19 +296,16 @@ return (
                   <p>Plan: {progress.monthly.plan.planCalls}</p>
                   <p>Fakt: {progress.monthly.fact.factCalls}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Suhbat</p>
                   <p>Plan: {progress.monthly.plan.planTalks}</p>
                   <p>Fakt: {progress.monthly.fact.factTalks}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Sotuv</p>
                   <p>Plan: {progress.monthly.plan.planSalesCount}</p>
                   <p>Fakt: {progress.monthly.fact.factSalesCount}</p>
                 </div>
-
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="font-medium">Kassa</p>
                   <p>Plan: {moneyFormat(progress.monthly.plan.planTotalCash)}</p>
@@ -323,7 +333,7 @@ return (
             <tbody>
               {monthlyPlan ? (
                 <tr className="border-t border-slate-100">
-<td className="px-4 py-3">
+ <td className="px-4 py-3">
                     {monthlyPlan.month}/{monthlyPlan.year}
                   </td>
                   <td className="px-4 py-3">{monthlyPlan.planCalls}</td>
