@@ -95,6 +95,9 @@ export interface DashboardProgress {
   monthly: ProgressBlock;
 }
 export interface Plan{
+  overallPercent(overallPercent: { (overallPercent: (overallPercent: any) => unknown): unknown; (overallPercent: any): unknown; }): unknown;
+  overallPercent(overallPercent: (overallPercent: any) => unknown): unknown;
+  overallPercent(overallPercent: any): unknown;
   id: number;
   month: number;
   year: number;
