@@ -106,4 +106,18 @@ export interface Plan{
   planDebt: number;
   planTotalCash: number;
   rewardName: string | null;
+  factCalls?: number;
+  factTalks?: number;
+  factSalesCount?: number;
+  factCashSales?: number;
+  factContractSales?: number;
+  factDebt?: number;
+  factTotalCash?: number;
+  rewardStatus?: string;
+  penaltyTask?: string | null;
+  penaltyTaskStatus?: string;
+  adminComment?: string | null;
+  user?: MonthlyPlanUser;
+  createdAt?: string;
+  updatedAt?: string;
 }
